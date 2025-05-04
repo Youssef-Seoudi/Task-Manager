@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Task Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .task-form { margin-bottom: 20px; display: flex; gap: 10px; }
+        input, select, button { padding: 8px; }
+        .priority-high { color: red; border-left: 3px solid red; }
+        .priority-medium { color: orange; border-left: 3px solid orange; }
+        .priority-low { color: green; border-left: 3px solid green; }
+        .task-item { padding: 10px; margin: 5px 0; background: #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
+        .completed { text-decoration: line-through; opacity: 0.7; }
+        .actions { display: flex; gap: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Task Manager</h1>
+    <form class="task-form" onsubmit="addTask(event)">
+        <input type="text" id="taskInput" placeholder="Task description" required>
+        <select id="taskPriority" required>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+        </select>
+        <button type="submit">Add Task</button>
+    </form>
+    <div id="taskList"></div>
+
+    <script>
+        // Initialize tasks from localStorage or empty array
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+        // Priority order mapping
+        const priorityOrder = { high: 1, medium: 2, low: 3 };
+
+        function addTask(event) {
+            event.preventDefault();
+            const taskInput = document.getElementById('taskInput');
+            const taskPriority = document.getElementById('taskPriority');
+            
+            tasks.push({
+                id: Date.now().toString(),
+                text: taskInput.value.trim(),
+                priority: taskPriority.value,
+                completed: false,
+                createdAt: new Date()
+            });
+            
+            taskInput.value = '';
+            saveAndRender();
+        }
+
+        function deleteTask(taskId) {
+            tasks = tasks.filter(task => task.id !== taskId);
+            saveAndRender();
+        }
+
+        function toggleComplete(taskId) {
+            tasks = tasks.map(task => 
+                task.id === taskId ? { ...task, completed: !task.completed } : task
+            );
+            saveAndRender();
+        }
+
+        function editTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            const newText = prompt('Edit task:', task.text);
+            if (newText !== null) {
+                task.text = newText.trim();
+                saveAndRender();
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById('taskList');
+            
+            // Sort tasks by priority and completion status
+            const sortedTasks = [...tasks].sort((a, b) => {
+                if (a.completed === b.completed) {
+                    return priorityOrder[a.priority] - priorityOrder[b.priority];
+                }
+                return a.completed ? 1 : -1;
+            });
+
+            taskList.innerHTML = sortedTasks.map(task => `
+                <div class="task-item ${task.completed ? 'completed' : ''} priority-${task.priority}">
+                    <span onclick="toggleComplete('${task.id}')">${task.text}</span>
+                    <div class="actions">
+                        <button onclick="editTask('${task.id}')">✏️ Edit</button>
+                        <button onclick="deleteTask('${task.id}')">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initial render
+        renderTasks();
+    </script>
+</body>
+</html>
